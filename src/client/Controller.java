@@ -29,52 +29,42 @@ public class Controller implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         //создание сокета клиента на стороне клиента, инициализация входящего и выходящего потоков
         try {
-             socket = new Socket(IP_ADRESS, PORT);
+            this.socket = new Socket(IP_ADRESS, PORT);
             in = new DataInputStream(socket.getInputStream());
-             out = new DataOutputStream(socket.getOutputStream());
-             new Thread(new Runnable() {
-                 @Override
-                 public void run() {
-                     try {
-                     while (true) {
-                        // String str = null;
-                         String str = in.readUTF();
-                         txt_area.appendText("Клиент " + str+"\n");
-                         if (str.equals("/end")) {
-                             System.out.println("Клиент вышел из чата***");
-                             break;
-                         }
-                     }
-                         } catch (IOException e) {
-                             e.printStackTrace();
-                         }
-                        finally {
-                             try {
-                                 socket.close();
-                             } catch (IOException e) {
-                                 e.printStackTrace();
-                             }
-                             System.out.println("Мы отключились от сервера");
-                         }
-                     }
-
-             }).start();
-
-
-            }
-         catch (IOException e) {
+            out = new DataOutputStream(socket.getOutputStream());
+            new Thread(() -> {
+                try {
+                    while (true) {
+                        String str = in.readUTF();
+                        if (!str.equals("/end")) {
+                            txt_area.appendText("Клиент " + str + "\n");
+                            continue;
+                        }
+                        return;
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    System.out.println("Мы отключились от сервера/controller");
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+        } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
 //это отработает перед блоком Initializable
     public void send(ActionEvent actionEvent) {
         try {
             //в выходной поток отправить текст, затем очистить поле и вернуть на него фокус
-            out.writeUTF(txt_field.getText());
-            txt_field.clear();
-            txt_field.requestFocus();
+            this.out.writeUTF(txt_field.getText());
+            this.txt_field.clear();
+            this.txt_field.requestFocus();
         } catch (IOException e) {
             e.printStackTrace();
         }
