@@ -10,6 +10,7 @@ public class ClientHandler {
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
+    private String nickName;
 
     public ClientHandler(final Server server, final Socket socket) {
             try {
@@ -20,6 +21,34 @@ public class ClientHandler {
                 //выделеление обработки исходящего и входящего потока клиента в отдельный от графики поток
                 new Thread(()-> {
                     try {
+//цикл аутентификации - пока не будет введен правильный логин пароль
+                        while (true){
+                            String str = in.readUTF();
+                            //от сервера поступит auth login password
+                            //если поступивший пакет начинается с auth, разбираем его на части  \\s = любое количество пробелов
+                            if (str.startsWith("auth")){
+                                String []token = str.split("\\s"); //получаем массив из которого будем брать логин и пароль
+                                //полученные логин и паорль передаем в метод для проверки наличия в списке пользователей
+                                //если есть - вернет никнейм
+                                String newNickName = server.getAuthService().getNickByLogAndPsw(token[1],token[2]);
+                                //если получен никнейм, то присваиваем его значение никнейму и отправляем на сервер сообщение,
+                                // что пользователь аутентифицирован и выходим из цикла
+                                if (newNickName!=null){
+                                    nickName=newNickName;
+                                    sendMsg("/authok "+nickName);
+                                    //добавлем подключенного клиента в список
+                                    server.subscribe(this);
+                                    System.out.println("Клиент "+nickName+ " подключился");
+                                    break;
+                                }
+                                else {
+                                sendMsg("Неверный логин/пароль");}
+                            }
+
+                        }
+
+
+                        //цикл обработки входящего сообщения с сервера
                         while (true) {
                             String str = ClientHandler.this.in.readUTF();
                             //рассылка всем клиентам исходящего сообщения
